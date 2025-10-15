@@ -1,7 +1,9 @@
 {
   "name": "api_tratamento_flow",
   "version": "1.0.0",
+  "description": "API para tratar respostas de fluxo da Meta",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "start": "node index.js"
   },
