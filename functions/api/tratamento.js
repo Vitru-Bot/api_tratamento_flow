@@ -1,77 +1,62 @@
-// /functions/api/tratamento.js
-
-/**
- * Esta função é acionada apenas para requisições POST para a URL /api/tratamento
- * O nome da função "onRequestPost" garante que apenas o método POST seja permitido.
- */
 export const onRequestPost = async ({ request }) => {
   try {
-    // Pega o corpo da requisição como texto puro, pois o original espera um JSON "sujo".
-    const textoOriginal = await request.text();
+    // 1. Pega o corpo da requisição e converte o JSON principal
+    const body = await request.json();
+    const respostasComoString = body.respostas;
 
-    // Validação para corpo vazio
-    if (!textoOriginal) {
-      return new Response(JSON.stringify({ error: "O corpo da requisição está vazio." }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+    // 2. Valida se o campo "respostas" existe e é uma string
+    if (!respostasComoString || typeof respostasComoString !== 'string') {
+      return new Response(
+        JSON.stringify({
+          error: 'O corpo deve ser um JSON com a chave "respostas" contendo um JSON em formato de string.',
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
     }
 
-    let texto = textoOriginal.trim();
+    // 3. Converte a string interna em um objeto JSON utilizável
+    const jsonInterno = JSON.parse(respostasComoString);
 
-    // Bloco 1: Remove barras invertidas se o JSON vier escapado
-    // Lógica mantida 100% igual ao original.
-    if (texto.startsWith("{\\") || texto.includes('\\"')) {
-      texto = texto.replace(/\\/g, "");
-    }
-
-    // Bloco 2: Tenta converter o texto em um objeto JSON
-    // A lógica é a mesma, mas a resposta de erro é adaptada para a Cloudflare.
-    let json;
-    try {
-      json = JSON.parse(texto);
-    } catch (e) {
-      return new Response(JSON.stringify({ error: "Não foi possível converter o JSON." }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    // Bloco 3: Extrai, ordena e trata as respostas
-    // Lógica mantida 100% igual ao original.
-    const respostasOrdenadas = Object.keys(json)
+    // 4. Extrai, ordena e trata as respostas (lógica original)
+    const respostasOrdenadas = Object.keys(jsonInterno)
       .filter((key) => key.toLowerCase().includes("resposta"))
       .sort((a, b) => {
-        const numA = parseInt(a.match(/screen_(\d+)_/)[1]);
-        const numB = parseInt(b.match(/screen_(\d+)_/)[1]);
+        // Garante que a ordenação não quebre se o padrão não for encontrado
+        const matchA = a.match(/screen_(\d+)_/);
+        const matchB = b.match(/screen_(\d+)_/);
+        if (!matchA || !matchB) return 0;
+
+        const numA = parseInt(matchA[1]);
+        const numB = parseInt(matchB[1]);
         return numA - numB;
       })
       .map((key) => {
-        let valor = json[key];
-        valor = valor.replace(/^\d+_/, ""); // remove número inicial
-        valor = valor.replace(/_/g, " ");   // substitui underline por espaço
+        let valor = jsonInterno[key];
+        valor = valor.replace(/^\d+_/, "");
+        valor = valor.replace(/_/g, " "); 
         return valor;
       });
 
-    // Bloco 4: Monta o objeto final com resposta1, resposta2, ...
-    // Lógica mantida 100% igual ao original.
-    const respostas = {};
-    respostasOrdenadas.forEach((resposta, i) => {
-      respostas[`resposta${i + 1}`] = resposta;
-    });
+    // 5. Junta todas as frases limpas em uma única string
+    const textoFinal = respostasOrdenadas.join(" ");
 
-    // Retorna a resposta de sucesso no formato da Cloudflare
-    return new Response(JSON.stringify({ respostas }), {
+    // 6. Monta o objeto de resposta final no formato solicitado
+    const corpoDaResposta = {
+      respostas: textoFinal,
+    };
+
+    // Retorna a resposta de sucesso
+    return new Response(JSON.stringify(corpoDaResposta), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
 
   } catch (err) {
-    // Captura qualquer outro erro inesperado e retorna um erro 500.
+    // Captura erros (ex: JSON mal formatado)
     console.error("Erro inesperado:", err);
-    return new Response(JSON.stringify({ error: "Erro interno ao processar a requisição." }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: "Erro interno ou JSON inválido na requisição." }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
   }
 };
