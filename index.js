@@ -1,14 +1,13 @@
-import express from "express";
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Método não permitido. Use POST." });
+  }
 
-const app = express();
-app.use(express.text({ type: "*/*" }));
-
-app.post("/tratar-flow", (req, res) => {
   try {
     let texto = req.body.trim();
 
     // Remove barras invertidas se vier escapado
-    if (texto.startsWith("{\\") || texto.includes("\\\"")) {
+    if (texto.startsWith("{\\") || texto.includes('\\"')) {
       texto = texto.replace(/\\/g, "");
     }
 
@@ -41,12 +40,9 @@ app.post("/tratar-flow", (req, res) => {
       respostas[`resposta${i + 1}`] = resposta;
     });
 
-    return res.json({ respostas });
+    return res.status(200).json({ respostas });
   } catch (err) {
     console.error("Erro:", err);
     return res.status(500).json({ error: "Erro ao processar JSON." });
   }
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 API rodando em http://localhost:${PORT}`));
+}

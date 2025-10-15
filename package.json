@@ -1,13 +1,14 @@
 {
   "name": "api_tratamento_flow",
   "version": "1.0.0",
-  "description": "API para tratar respostas de fluxo da Meta",
-  "main": "index.js",
+  "description": "API serverless para tratar respostas do flow da Meta",
+  "main": "ono.js",
   "type": "module",
   "scripts": {
-    "start": "node index.js"
+    "start": "ono dev"
   },
-  "dependencies": {
-    "express": "^4.21.1"
+  "dependencies": {},
+  "devDependencies": {
+    "ono": "latest"
   }
 }
