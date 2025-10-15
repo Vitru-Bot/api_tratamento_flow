@@ -1,0 +1,4 @@
+name = "api_tratamento_flow"
+main = "functions/api/tratamento.js"
+compatibility_flags = ["nodejs_compat"]
+compatibility_date = "2025-10-15"
