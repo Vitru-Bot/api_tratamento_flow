@@ -1,10 +1,10 @@
 export const onRequestPost = async ({ request }) => {
   try {
-    // 1. Pega o corpo da requisição e converte o JSON principal
+    // 1. Pega o corpo da requisição e o JSON principal
     const body = await request.json();
     const respostasComoString = body.respostas;
 
-    // 2. Valida se o campo "respostas" existe e é uma string
+    // 2. Validação da entrada
     if (!respostasComoString || typeof respostasComoString !== 'string') {
       return new Response(
         JSON.stringify({
@@ -14,14 +14,13 @@ export const onRequestPost = async ({ request }) => {
       );
     }
 
-    // 3. Converte a string interna em um objeto JSON utilizável
+    // 3. Converte a string interna em um objeto JSON
     const jsonInterno = JSON.parse(respostasComoString);
 
     // 4. Extrai, ordena e trata as respostas (lógica original)
     const respostasOrdenadas = Object.keys(jsonInterno)
       .filter((key) => key.toLowerCase().includes("resposta"))
       .sort((a, b) => {
-        // Garante que a ordenação não quebre se o padrão não for encontrado
         const matchA = a.match(/screen_(\d+)_/);
         const matchB = b.match(/screen_(\d+)_/);
         if (!matchA || !matchB) return 0;
@@ -33,16 +32,18 @@ export const onRequestPost = async ({ request }) => {
       .map((key) => {
         let valor = jsonInterno[key];
         valor = valor.replace(/^\d+_/, "");
-        valor = valor.replace(/_/g, " "); 
+        valor = valor.replace(/_/g, " ");
         return valor;
       });
+      
+    const respostasObjeto = {};
+    respostasOrdenadas.forEach((resposta, i) => {
+      respostasObjeto[`resposta${i + 1}`] = resposta;
+    });
 
-    // 5. Junta todas as frases limpas em uma única string
-    const textoFinal = respostasOrdenadas.join(" ");
-
-    // 6. Monta o objeto de resposta final no formato solicitado
+    // 6. Monta o corpo da resposta final com o objeto aninhado
     const corpoDaResposta = {
-      respostas: textoFinal,
+      respostas: respostasObjeto,
     };
 
     // Retorna a resposta de sucesso
@@ -52,7 +53,6 @@ export const onRequestPost = async ({ request }) => {
     });
 
   } catch (err) {
-    // Captura erros (ex: JSON mal formatado)
     console.error("Erro inesperado:", err);
     return new Response(
       JSON.stringify({ error: "Erro interno ou JSON inválido na requisição." }),
